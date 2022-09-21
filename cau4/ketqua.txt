@@ -1,0 +1,44 @@
+4#.. tao pod with selector
+
+apiVersion: v1
+kind: Pod
+metadata:
+  name: redis
+spec:
+  containers:
+  - name: redis
+    image: redis:latest
+    imagePullPolicy: IfNotPresent
+  nodeSelector:
+    kubernetes.io/hostname: "k8s-worker02"
+
+
+Em dung selector node cho simple ah hoac co the dung Node Affiniti
+--> Apply file and delete nhieu lan de test
+
+root@k8s-master01:~/K8S-Mastering/FinalExam-TOKA12/toka12-finalexam/cau4# kubectl get pod redis -owide
+NAME    READY   STATUS    RESTARTS   AGE   IP               NODE           NOMINATED NODE   READINESS GATES
+redis   1/1     Running   0          38s   192.168.69.233   k8s-worker02   <none>           <none>
+
+
+root@k8s-master01:~/K8S-Mastering/FinalExam-TOKA12/toka12-finalexam/cau4# kubectl delete pod redis
+pod "redis" deleted
+root@k8s-master01:~/K8S-Mastering/FinalExam-TOKA12/toka12-finalexam/cau4# cat webpod.yaml
+apiVersion: v1
+kind: Pod
+metadata:
+  name: redis
+spec:
+  containers:
+  - name: redis
+    image: redis:latest
+    imagePullPolicy: IfNotPresent
+  nodeSelector:
+    kubernetes.io/hostname: "k8s-worker02"
+root@k8s-master01:~/K8S-Mastering/FinalExam-TOKA12/toka12-finalexam/cau4# kubectl apply -f webpod.yaml
+pod/redis created
+root@k8s-master01:~/K8S-Mastering/FinalExam-TOKA12/toka12-finalexam/cau4# kubectl get pod redis -owide
+NAME    READY   STATUS    RESTARTS   AGE   IP               NODE           NOMINATED NODE   READINESS GATES
+redis   1/1     Running   0          11s   192.168.69.234   k8s-worker02   <none>           <none>
+root@k8s-master01:~/K8S-Mastering/FinalExam-TOKA12/toka12-finalexam/cau4#
+
