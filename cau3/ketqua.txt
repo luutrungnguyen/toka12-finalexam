@@ -98,6 +98,8 @@ Session Affinity:  None
 Events:            <none>
 root@k8s-master01:~/K8S-Mastering/FinalExam-TOKA12/cau3#
 
+-------------------------------------------------------
+
 3.2# Service Account
 
 root@k8s-master01:~/K8S-Mastering/FinalExam-TOKA12/cau3# cat service-account.yaml
@@ -159,6 +161,8 @@ spec:
     - name: cluster
       port: 80
       targetPort: 80
+      
+-------------------------------------------------------
 
 3.3# Tao Role
 
@@ -216,6 +220,36 @@ Subjects:
   ----  ----          ---------
   User  k8s-readonly
 
+# Test Role
+
+root@k8s-master01:~/.kube# kubectl get deployment --namespace=cau3
+NAME     READY   UP-TO-DATE   AVAILABLE   AGE
+webapp   1/1     1            1           107m
+root@k8s-master01:~/.kube# kubectl get deployment --namespace=cau3 --as k8s-readonly
+NAME     READY   UP-TO-DATE   AVAILABLE   AGE
+webapp   1/1     1            1           107m
+root@k8s-master01:~/.kube# kubectl get pod --namespace=cau3 --as k8s-readonly
+Error from server (Forbidden): pods is forbidden: User "k8s-readonly" cannot list resource "pods" in API group "" in the namespace "cau3"
+root@k8s-master01:~/.kube# kubectl get deployment --namespace=cau3
+NAME     READY   UP-TO-DATE   AVAILABLE   AGE
+webapp   1/1     1            1           108m
+root@k8s-master01:~/.kube# kubectl get svc --namespace=cau3
+NAME     TYPE        CLUSTER-IP       EXTERNAL-IP   PORT(S)   AGE
+websvc   ClusterIP   10.102.133.126   <none>        80/TCP    89m
+root@k8s-master01:~/.kube# kubectl get pod --namespace=cau3
+NAME                      READY   STATUS    RESTARTS   AGE
+webapp-76c968d69b-v9qfx   1/1     Running   0          60m
+root@k8s-master01:~/.kube# kubectl get pod --namespace=cau3 --as k8s-readonly
+Error from server (Forbidden): pods is forbidden: User "k8s-readonly" cannot list resource "pods" in API group "" in the namespace "cau3"
+root@k8s-master01:~/.kube# kubectl get svc --namespace=cau3 --as k8s-readonly
+Error from server (Forbidden): services is forbidden: User "k8s-readonly" cannot list resource "services" in API group "" in the namespace "cau3"
+root@k8s-master01:~/.kube# kubectl get deployment --namespace=cau3 --as k8s-readonly
+NAME     READY   UP-TO-DATE   AVAILABLE   AGE
+webapp   1/1     1            1           109m
+root@k8s-master01:~/.kube#
+
+-------------------------------------------------------
+
 3.4# Network Policy
 
 apiVersion: networking.k8s.io/v1
@@ -229,6 +263,8 @@ spec:
   - Ingress
 
 ->> apply file: default deny all. khong can podselector
+https://kubernetes.io/docs/concepts/services-networking/network-policies/
+
 
 
 
