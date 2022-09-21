@@ -1,0 +1,44 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: webapp
+  namespace: cau3
+  labels:
+    application: web
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+     application: web
+  template:
+    metadata:
+      name: podapp
+      labels:
+       application: web
+    spec:
+      serviceAccountName: webapp-sa
+      containers:
+      - name: nginx
+        image: nginx
+        resources:
+          limits:
+            memory: "128Mi"
+            cpu: "100m"
+        ports:
+        - containerPort: 80
+
+---
+
+apiVersion: v1
+kind: Service
+metadata:
+  name: websvc
+  namespace: cau3
+spec:
+  selector:
+     app: webapp
+  type: ClusterIP
+  ports:
+    - name: cluster
+      port: 80
+      targetPort: 80

@@ -1,0 +1,234 @@
+
+3.1# Deployment
+root@k8s-master01:~/K8S-Mastering/FinalExam-TOKA12/cau3# kubectl apply -f webapp.yaml
+deployment.apps/webapp unchanged
+service/websvc created
+
+root@k8s-master01:~/K8S-Mastering/FinalExam-TOKA12/cau3# kubectl get pod --namespace cau3
+NAME                      READY   STATUS    RESTARTS   AGE
+webapp-76fb77784b-6tbpc   1/1     Running   0          35s
+
+root@k8s-master01:~/K8S-Mastering/FinalExam-TOKA12/cau3# kubectl describe pod webapp-76fb77784b-6tbpc --namespace cau3
+Name:         webapp-76fb77784b-6tbpc
+Namespace:    cau3
+Priority:     0
+Node:         k8s-worker02/10.182.4.61
+Start Time:   Wed, 21 Sep 2022 13:41:01 +0000
+Labels:       application=web
+              pod-template-hash=76fb77784b
+Annotations:  cni.projectcalico.org/containerID: faa7d1ffb31533c92393956ed835a861aed0b0a132e2a678df2e0db16474e981
+              cni.projectcalico.org/podIP: 192.168.69.232/32
+              cni.projectcalico.org/podIPs: 192.168.69.232/32
+Status:       Running
+IP:           192.168.69.232
+IPs:
+  IP:           192.168.69.232
+Controlled By:  ReplicaSet/webapp-76fb77784b
+Containers:
+  nginx:
+    Container ID:   containerd://cd7dde3e48b314675fc9b10f0f38fd83bc59cf0988b08a0be5e86327045b2c9f
+    Image:          nginx
+    Image ID:       docker.io/library/nginx@sha256:0b970013351304af46f322da1263516b188318682b2ab1091862497591189ff1
+    Port:           80/TCP
+    Host Port:      0/TCP
+    State:          Running
+      Started:      Wed, 21 Sep 2022 13:41:13 +0000
+    Ready:          True
+    Restart Count:  0
+    Limits:
+      cpu:     100m
+      memory:  128Mi
+    Requests:
+      cpu:        100m
+      memory:     128Mi
+    Environment:  <none>
+    Mounts:
+      /var/run/secrets/kubernetes.io/serviceaccount from kube-api-access-pqkhv (ro)
+Conditions:
+  Type              Status
+  Initialized       True
+  Ready             True
+  ContainersReady   True
+  PodScheduled      True
+Volumes:
+  kube-api-access-pqkhv:
+    Type:                    Projected (a volume that contains injected data from multiple sources)
+    TokenExpirationSeconds:  3607
+    ConfigMapName:           kube-root-ca.crt
+    ConfigMapOptional:       <nil>
+    DownwardAPI:             true
+QoS Class:                   Guaranteed
+Node-Selectors:              <none>
+Tolerations:                 node.kubernetes.io/not-ready:NoExecute op=Exists for 300s
+                             node.kubernetes.io/unreachable:NoExecute op=Exists for 300s
+Events:
+  Type    Reason     Age   From               Message
+  ----    ------     ----  ----               -------
+  Normal  Scheduled  58s   default-scheduler  Successfully assigned cau3/webapp-76fb77784b-6tbpc to k8s-worker02
+  Normal  Pulling    56s   kubelet            Pulling image "nginx"
+  Normal  Pulled     46s   kubelet            Successfully pulled image "nginx" in 9.382010946s
+  Normal  Created    46s   kubelet            Created container nginx
+  Normal  Started    46s   kubelet            Started container nginx
+root@k8s-master01:~/K8S-Mastering/FinalExam-TOKA12/cau3#
+
+
+
+# Expose SVC
+
+root@k8s-master01:~/K8S-Mastering/FinalExam-TOKA12/cau3# kubectl get svc --namespace cau3
+NAME     TYPE        CLUSTER-IP       EXTERNAL-IP   PORT(S)   AGE
+websvc   ClusterIP   10.102.133.126   <none>        80/TCP    75s
+
+
+root@k8s-master01:~/K8S-Mastering/FinalExam-TOKA12/cau3# kubectl describe svc websvc --namespace cau3
+Name:              websvc
+Namespace:         cau3
+Labels:            <none>
+Annotations:       <none>
+Selector:          app=webapp
+Type:              ClusterIP
+IP Family Policy:  SingleStack
+IP Families:       IPv4
+IP:                10.102.133.126
+IPs:               10.102.133.126
+Port:              cluster  80/TCP
+TargetPort:        80/TCP
+Endpoints:         <none>
+Session Affinity:  None
+Events:            <none>
+root@k8s-master01:~/K8S-Mastering/FinalExam-TOKA12/cau3#
+
+3.2# Service Account
+
+root@k8s-master01:~/K8S-Mastering/FinalExam-TOKA12/cau3# cat service-account.yaml
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: webapp-sa
+  namespace: cau3
+automountServiceAccountToken: false
+
+
+
+# Add service account to deplopment
+root@k8s-master01:~/K8S-Mastering/FinalExam-TOKA12/cau3# kubectl edit deployment webapp  --namespace cau3
+
+# Or edit lai file deployment and apply lai
+
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: webapp
+  namespace: cau3
+  labels:
+    application: web
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+     application: web
+  template:
+    metadata:
+      name: podapp
+      labels:
+       application: web
+    spec:
+      serviceAccountName: webapp-sa
+      containers:
+      - name: nginx
+        image: nginx
+        resources:
+          limits:
+            memory: "128Mi"
+            cpu: "100m"
+        ports:
+        - containerPort: 80
+
+---
+
+apiVersion: v1
+kind: Service
+metadata:
+  name: websvc
+  namespace: cau3
+spec:
+  selector:
+     app: webapp
+  type: ClusterIP
+  ports:
+    - name: cluster
+      port: 80
+      targetPort: 80
+
+3.3# Tao Role
+
+root@k8s-master01:~/K8S-Mastering/FinalExam-TOKA12/cau3# cat RBAC.yaml
+kind: ClusterRoleBinding
+apiVersion: rbac.authorization.k8s.io/v1
+metadata:
+  name: read-pods
+  namespace: cau3
+subjects:
+  - kind: User
+    name: k8s-readonly
+    apiGroup: rbac.authorization.k8s.io
+roleRef:
+  kind: ClusterRole
+  name: pod-reader
+  apiGroup: rbac.authorization.k8s.io
+
+---
+kind: ClusterRole
+apiVersion: rbac.authorization.k8s.io/v1
+metadata:
+  namespace: cau3
+  name: pod-reader
+rules:
+- apiGroups: ["extensions", "apps", ""]
+  resources: ["deployments"]
+  verbs: ["get", "list", "watch"]
+
+-> Apply config
+root@k8s-master01:~/K8S-Mastering/FinalExam-TOKA12/cau3# kubectl apply -f RBAC.yaml
+clusterrolebinding.rbac.authorization.k8s.io/read-pods created
+
+
+root@k8s-master01:~/K8S-Mastering/FinalExam-TOKA12/cau3# kubectl describe clusterroles pod-reader
+Name:         pod-reader
+Labels:       <none>
+Annotations:  <none>
+PolicyRule:
+  Resources               Non-Resource URLs  Resource Names  Verbs
+  ---------               -----------------  --------------  -----
+  deployments             []                 []              [get list watch]
+  deployments.apps        []                 []              [get list watch]
+  deployments.extensions  []                 []              [get list watch]
+
+root@k8s-master01:~/K8S-Mastering/FinalExam-TOKA12/cau3# kubectl describe clusterrolebindings read-pods
+Name:         read-pods
+Labels:       <none>
+Annotations:  <none>
+Role:
+  Kind:  ClusterRole
+  Name:  pod-reader
+Subjects:
+  Kind  Name          Namespace
+  ----  ----          ---------
+  User  k8s-readonly
+
+3.4# Network Policy
+
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: default-deny-ingress
+  namespace: cau3
+spec:
+  podSelector: {}
+  policyTypes:
+  - Ingress
+
+->> apply file: default deny all. khong can podselector
+
+
+

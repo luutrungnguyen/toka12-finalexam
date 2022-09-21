@@ -1,0 +1,145 @@
+
+1. ----------- Cluster Status -------------------
+root@k8s-master01:~/K8S-Mastering# kubectl get nodes -owide
+NAME           STATUS   ROLES           AGE   VERSION   INTERNAL-IP   EXTERNAL-IP   OS-IMAGE             KERNEL-VERSION      CONTAINER-RUNTIME
+k8s-master01   Ready    control-plane   28h   v1.24.5   10.182.4.50   <none>        Ubuntu 20.04.5 LTS   5.4.0-125-generic   containerd://1.6.8
+k8s-worker01   Ready    <none>          28h   v1.24.5   10.182.4.60   <none>        Ubuntu 20.04.4 LTS   5.4.0-125-generic   containerd://1.6.8
+k8s-worker02   Ready    <none>          27h   v1.24.5   10.182.4.61   <none>        Ubuntu 20.04.4 LTS   5.4.0-125-generic   containerd://1.6.8
+k8s-worker03   Ready    <none>          27h   v1.24.5   10.182.4.62   <none>        Ubuntu 20.04.4 LTS   5.4.0-125-generic   containerd://1.6.8
+
+2.------------ deployment nginx -----------------
+root@k8s-master01:~/K8S-Mastering# cat webapp.yaml
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: nginx-deployment
+  labels:
+    app: nginx
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: nginx
+  template:
+    metadata:
+      labels:
+        app: nginx
+    spec:
+      containers:
+      - name: nginx
+        image: nginx:1.18.2
+        resources:
+          requests:
+            memory: 128M
+            cpu: 100m
+          limits:
+            memory: 128M
+            cpu: 500m
+
+        ports:
+        - containerPort: 80
+
+# check status
+
+root@k8s-master01:~/K8S-Mastering# kubectl get deployment nginx-deployment -owide
+NAME               READY   UP-TO-DATE   AVAILABLE   AGE     CONTAINERS   IMAGES         SELECTOR
+nginx-deployment   2/2     2            2           2m45s   nginx        nginx:1.18.0   app=nginx
+
+
+root@k8s-master01:~/K8S-Mastering# kubectl describe deployment nginx-deployment
+Name:                   nginx-deployment
+Namespace:              default
+CreationTimestamp:      Wed, 21 Sep 2022 12:45:11 +0000
+Labels:                 app=nginx
+Annotations:            deployment.kubernetes.io/revision: 2
+Selector:               app=nginx
+Replicas:               2 desired | 2 updated | 2 total | 2 available | 0 unavailable
+StrategyType:           RollingUpdate
+MinReadySeconds:        0
+RollingUpdateStrategy:  25% max unavailable, 25% max surge
+Pod Template:
+  Labels:  app=nginx
+  Containers:
+   nginx:
+    Image:      nginx:1.18.0
+    Port:       80/TCP
+    Host Port:  0/TCP
+    Limits:
+      cpu:     500m
+      memory:  128M
+    Requests:
+      cpu:        100m
+      memory:     128M
+    Environment:  <none>
+    Mounts:       <none>
+  Volumes:        <none>
+Conditions:
+  Type           Status  Reason
+  ----           ------  ------
+  Available      True    MinimumReplicasAvailable
+  Progressing    True    NewReplicaSetAvailable
+OldReplicaSets:  <none>
+NewReplicaSet:   nginx-deployment-767ccbf965 (2/2 replicas created)
+Events:
+  Type    Reason             Age   From                   Message
+  ----    ------             ----  ----                   -------
+  Normal  ScalingReplicaSet  4m2s  deployment-controller  Scaled up replica set nginx-deployment-5b84d58699 to 2
+  Normal  ScalingReplicaSet  115s  deployment-controller  Scaled up replica set nginx-deployment-767ccbf965 to 1
+  Normal  ScalingReplicaSet  104s  deployment-controller  Scaled down replica set nginx-deployment-5b84d58699 to 1
+  Normal  ScalingReplicaSet  104s  deployment-controller  Scaled up replica set nginx-deployment-767ccbf965 to 2
+  Normal  ScalingReplicaSet  94s   deployment-controller  Scaled down replica set nginx-deployment-5b84d58699 to 0
+
+root@k8s-master01:~/K8S-Mastering# kubectl get pod | grep nginx-deployment-
+nginx-deployment-767ccbf965-9s6b4                  1/1     Running   0          2m20s
+nginx-deployment-767ccbf965-hcb9z                  1/1     Running   0          2m31s
+root@k8s-master01:~/K8S-Mastering#
+
+3. Expose using nodeport
+
+root@k8s-master01:~/K8S-Mastering# kubectl expose deployment nginx-deployment --port=80 --target-port=80 --type NodePort
+service/nginx-deployment exposed
+
+root@k8s-master01:~/K8S-Mastering# kubectl get svc nginx-deployment
+NAME               TYPE       CLUSTER-IP      EXTERNAL-IP   PORT(S)        AGE
+nginx-deployment   NodePort   10.102.55.169   <none>        80:31240/TCP   23s
+
+4. Access webapp
+
+root@k8s-master01:~/K8S-Mastering# curl -I http://10.102.55.169
+HTTP/1.1 200 OK
+Server: nginx/1.18.0
+Date: Wed, 21 Sep 2022 12:53:08 GMT
+Content-Type: text/html
+Content-Length: 612
+Last-Modified: Tue, 21 Apr 2020 14:09:01 GMT
+Connection: keep-alive
+ETag: "5e9efe7d-264"
+Accept-Ranges: bytes
+
+
+root@k8s-master01:~/K8S-Mastering# curl -I http://10.182.4.60:31240
+HTTP/1.1 200 OK
+Server: nginx/1.23.1
+Date: Wed, 21 Sep 2022 12:54:44 GMT
+Content-Type: text/html
+Content-Length: 615
+Last-Modified: Tue, 19 Jul 2022 14:05:27 GMT
+Connection: keep-alive
+ETag: "62d6ba27-267"
+Accept-Ranges: bytes
+
+root@k8s-master01:~/K8S-Mastering# curl -I http://10.182.4.62:31240
+HTTP/1.1 200 OK
+Server: nginx/1.18.0
+Date: Wed, 21 Sep 2022 12:54:49 GMT
+Content-Type: text/html
+Content-Length: 612
+Last-Modified: Tue, 21 Apr 2020 14:09:01 GMT
+Connection: keep-alive
+ETag: "5e9efe7d-264"
+Accept-Ranges: bytes
+
+5. Save file
+
+
+

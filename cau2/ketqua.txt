@@ -1,0 +1,95 @@
+
+#. Deploy multi-container
+root@k8s-master01:~/K8S-Mastering/FinalExam-TOKA12/cau2# kubectl get pod --namespace cau2
+NAME        READY   STATUS    RESTARTS   AGE
+multi-pod   2/2     Running   0          27s
+root@k8s-master01:~/K8S-Mastering/FinalExam-TOKA12/cau2#
+
+
+# Status
+
+root@k8s-master01:~/K8S-Mastering/FinalExam-TOKA12/cau2# kubectl describe pod multi-pod --namespace cau2
+Name:         multi-pod
+Namespace:    cau2
+Priority:     0
+Node:         k8s-worker01/10.182.4.60
+Start Time:   Wed, 21 Sep 2022 13:16:10 +0000
+Labels:       <none>
+Annotations:  cni.projectcalico.org/containerID: 4d083ee6fb339cc20ffb401857ac91a0c9ab43d963b025ea92a33dec5a49f933
+              cni.projectcalico.org/podIP: 192.168.79.95/32
+              cni.projectcalico.org/podIPs: 192.168.79.95/32
+Status:       Running
+IP:           192.168.79.95
+IPs:
+  IP:  192.168.79.95
+Containers:
+  pod1:
+    Container ID:  containerd://9ead7c1aff38b775af8a653eec49000d94c95d435e3fb05b81f3a15bdc72a289
+    Image:         busybox:1.31.1
+    Image ID:      docker.io/library/busybox@sha256:95cf004f559831017cdf4628aaf1bb30133677be8702a8c5f2994629f637a209
+    Port:          <none>
+    Host Port:     <none>
+    Command:
+      /bin/sh
+    Args:
+      -c
+      while true; do echo $(hostname) $(date) >> /vol/date.log; sleep 5; done
+    State:          Running
+      Started:      Wed, 21 Sep 2022 13:16:17 +0000
+    Ready:          True
+    Restart Count:  0
+    Environment:    <none>
+    Mounts:
+      /var/log from vol (rw)
+      /var/run/secrets/kubernetes.io/serviceaccount from kube-api-access-qrjb4 (ro)
+  pod2:
+    Container ID:   containerd://50d0c5dd11778dfd71025208c0a513e9df0537bd96e9319a283dc5bd8814170a
+    Image:          nginx:latest
+    Image ID:       docker.io/library/nginx@sha256:0b970013351304af46f322da1263516b188318682b2ab1091862497591189ff1
+    Port:           80/TCP
+    Host Port:      0/TCP
+    State:          Running
+      Started:      Wed, 21 Sep 2022 13:16:27 +0000
+    Ready:          True
+    Restart Count:  0
+    Environment:    <none>
+    Mounts:
+      /usr/share/nginx/html from vol (rw)
+      /var/run/secrets/kubernetes.io/serviceaccount from kube-api-access-qrjb4 (ro)
+Conditions:
+  Type              Status
+  Initialized       True
+  Ready             True
+  ContainersReady   True
+  PodScheduled      True
+Volumes:
+  vol:
+    Type:       EmptyDir (a temporary directory that shares a pod's lifetime)
+    Medium:
+    SizeLimit:  <unset>
+  kube-api-access-qrjb4:
+    Type:                    Projected (a volume that contains injected data from multiple sources)
+    TokenExpirationSeconds:  3607
+    ConfigMapName:           kube-root-ca.crt
+    ConfigMapOptional:       <nil>
+    DownwardAPI:             true
+QoS Class:                   BestEffort
+Node-Selectors:              <none>
+Tolerations:                 node.kubernetes.io/not-ready:NoExecute op=Exists for 300s
+                             node.kubernetes.io/unreachable:NoExecute op=Exists for 300s
+Events:
+  Type    Reason     Age   From               Message
+  ----    ------     ----  ----               -------
+  Normal  Scheduled  86s   default-scheduler  Successfully assigned cau2/multi-pod to k8s-worker01
+  Normal  Pulling    86s   kubelet            Pulling image "busybox:1.31.1"
+  Normal  Pulled     79s   kubelet            Successfully pulled image "busybox:1.31.1" in 6.615178933s
+  Normal  Created    79s   kubelet            Created container pod1
+  Normal  Started    79s   kubelet            Started container pod1
+  Normal  Pulling    79s   kubelet            Pulling image "nginx:latest"
+  Normal  Pulled     70s   kubelet            Successfully pulled image "nginx:latest" in 9.385996094s
+  Normal  Created    70s   kubelet            Created container pod2
+  Normal  Started    69s   kubelet            Started container pod2
+root@k8s-master01:~/K8S-Mastering/FinalExam-TOKA12/cau2#
+
+
+
